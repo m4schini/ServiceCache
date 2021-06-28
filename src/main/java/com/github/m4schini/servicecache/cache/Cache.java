@@ -1,7 +1,9 @@
 package com.github.m4schini.servicecache.cache;
 
-import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.api.sync.RedisCommands;
+import com.github.m4schini.servicecache.memory.IMemory;
+import com.github.m4schini.servicecache.memory.InMemory;
+import com.github.m4schini.servicecache.memory.RedisMemory;
+import io.lettuce.core.RedisClient;
 import com.github.m4schini.servicecache.exception.MissingAnnotationException;
 
 
@@ -11,10 +13,18 @@ import java.util.concurrent.Callable;
 
 public class Cache {
 
-    private final RedisCommands<String, String> redis;
+    private final IMemory<CacheItem> memory;
 
-    public Cache(StatefulRedisConnection<String, String> connection) {
-        redis = connection.sync();
+    public Cache() {
+        this.memory = new InMemory();
+    }
+
+    public Cache(RedisClient client) {
+        this.memory = new RedisMemory(client);
+    }
+
+    public Cache(String host) {
+        this.memory = new RedisMemory(host);
     }
 
     /**
@@ -23,7 +33,7 @@ public class Cache {
      * @param data data that should be cached
      */
     public void push(String key, Serializable data) {
-        redis.set(key, CacheItem.serialize(new CacheItem(CacheItem.serialize(data))));
+        memory.set(key, data);
     }
 
     /**
@@ -32,8 +42,7 @@ public class Cache {
      * @return null if item not found, CacheItem object if item was found
      */
     public CacheItem retrieve(String key) {
-        String raw = redis.get(key);
-        return raw == null ? new CacheItem() : ((CacheItem) CacheItem.deserialize(raw));
+        return memory.get(key);
     }
 
     /**
@@ -44,7 +53,7 @@ public class Cache {
      * @return true, if key exists in cache
      */
     public boolean has(String key) {
-        return redis.get(key) != null;
+        return memory.get(key) != null;
     }
 
     /**
@@ -75,6 +84,7 @@ public class Cache {
         try {
             value = fetcher.call();
         } catch (Exception e) {
+            // who cares, this isn't production code
         }
 
         // checking if fetcher call returned data
