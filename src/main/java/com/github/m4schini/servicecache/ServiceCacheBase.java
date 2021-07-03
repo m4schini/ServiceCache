@@ -1,16 +1,25 @@
 package com.github.m4schini.servicecache;
 
 import com.github.m4schini.servicecache.cache.Cache;
-import io.lettuce.core.RedisClient;
 
+/**
+ * Use this as a super class to use the ServiceCache
+ */
 abstract public class ServiceCacheBase {
     protected final Cache cache;
 
-    ServiceCacheBase() {
+    /**
+     * Constructs cache with in in-memory cache
+     */
+    public ServiceCacheBase() {
         this.cache = new Cache();
     }
 
-    ServiceCacheBase(String host) {
+    /**
+     * Uses redis instead of in-memory for the cache
+     * @param host url of redis database
+     */
+    public ServiceCacheBase(String host) {
         this.cache = new Cache(host);
     }
 }
